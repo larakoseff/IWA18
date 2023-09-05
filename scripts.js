@@ -1,6 +1,6 @@
 import { createOrderHtml, html, updateDraggingHtml, moveToColumn }  from './view.js' 
 
-import { COLUMNS, createOrderData, updateDragging } from './data.js'
+import { state, createOrderData, updateDragging } from './data.js'
 /**
  * A handler that fires when a user drags over any element inside a column. In
  * order to determine which column the user is dragging over the entire event
@@ -31,39 +31,19 @@ const handleDragOver = (event) => {
 }
 
 const handleDragStart = (event) => { 
-    event.preventDefault();
-    const path = event.path || event.composedPath()
-    let column = null
-
-    for (const element of path) {
-        const { area } = element.dataset
-        if (area) {
-            column = area
-            break;
-        }
-    }
-
-    if (!column) return
-    updateDragging({ start: column })
-    updateDraggingHtml({ start: column })
+    const dragID = event.target.dataset.id
+    const dragSourceColumn = state.orders[dragID.column]
+    state.dragging.source = dragSourceColumn
 }
 
 const handleDragEnd = (event) => { 
-    event.preventDefault();
-    const path = event.path || event.composedPath()
-    let column = null
+const dragID = event.target.dataset.id
+const dragOverColumn = state.dragging.over
 
-    for (const element of path) {
-        const { area } = element.dataset
-        if (area) {
-            column = area
-            break;
-        }
-    }
+moveToColumn(dragID, dragOverColumn)
 
-    if (!column) return
-    updateDragging({ end: column })
-    updateDraggingHtml({ end: column })
+state.orders[dragID].column = dragOverColumn
+
 }
 
 
@@ -78,69 +58,116 @@ const handleHelpToggle = (event) => {
     if (target.hasAttribute('data-help-cancel')) {
       const helpCancelElement = html.help.overlay
       helpCancelElement.removeAttribute('open')
-    }
+    } 
   }
 
 const handleAddToggle = (event) => {
-const { target } = event   
+const { target } = event  
+const otherAdd = html.other.add
+const addCancelElement = html.add.overlay
+const addOrder = html.add.overlay
+
 
 if (target.hasAttribute('data-add')) {
-const addOrder = html.add.overlay
-addOrder.setAttribute('open', 'true')
+addOrder.showModal()
 } 
 
 if (target.hasAttribute('data-add-cancel')) {
-    const addCancelElement = html.add.overlay
-    addCancelElement.removeAttribute('open')
+    addCancelElement.close()
+    otherAdd.focus()
   }
 
 }
 
 const handleAddSubmit = (event) => {
+event.preventDefault()
+const addOverlay = html.add.overlay
+const otherAdd = html.other.add
+const addForm = html.add.form
 
-    const formData = new FormData(event.target)
+const addTitle = html.add.title.value
+const addTable = html.add.table.value
+const defaultColumn = 'ordered'
 
-    const orderTitle = formData.get('data-add-title')
-    const orderTable = formData.get('data-add-table')
-    const orderColumn = COLUMNS['ordered']
+const defaultHTMLColumn = html.columns.ordered
 
-    createOrderHtml(orderTitle, orderTable)
-    createOrderData(orderTitle, orderTable)
-    moveToColumn(orderColumn)
-  }
+const newOrderObj = createOrderData({title: addTitle, table: addTable, column: defaultColumn})
+
+state.orders[newOrderObj.id] = newOrderObj
+
+defaultHTMLColumn.appendChild(createOrderHtml(state.orders[newOrderObj.id]))
+
+addForm.reset()
+addOverlay.close()
+otherAdd.focus()
+}
 
 const handleEditToggle = (event) => {
-    const { target } = event
-    
-    if (target.hasAttribute('data-grid')) {
-        const editOrder = html.edit.overlay
-        editOrder.setAttribute('open', 'true')
-        } 
-        
- if (target.hasAttribute('data-edit-cancel')) {
-            const editCancel = html.edit.overlay
-            editCancel.removeAttribute('open')
-          }
+    const editOverlay = html.edit.overlay
+    const otherAdd = html.other.add
+    const formID = html.edit.id
+    const formTitle = html.edit.title
+    const formTable = html.edit.table
+    const formColumn = html.edit.column
+
+    if(event.target.className === 'order') {
+        formID.value = event.target.dataset.id
+        formTitle.value = state.orders[formID.value].title
+        formTable.value = state.orders[formID.value].table
+        formColumn.value = state.orders[formID.value].column
+        editOverlay.showModal()
+    } else {
+        editOverlay.close()
+        otherAdd.focus()
+    }
+
 
 }
 const handleEditSubmit = (event) => {
-    const { target } = event
-    
-    if (target.hasAttribute('data-edit-form')) {
-        
-        createOrderHtml()
-        createOrderData()
-        moveToColumn()
-    }
+event.preventDefault()
+const editOverlay = html.edit.overlay
+const otherAdd = html.other.add
+const formID = html.edit.id
+
+const formTitle = html.edit.title
+const formTable = html.edit.table
+const formColumn = html.edit.column
+let currentColumn = null
+
+if(formColumn.value === 'ordered') currentColumn = html.columns.ordered
+if(formColumn.value === 'preparing') currentColumn = html.columns.preparing
+if(formColumn.value === 'served') currentColumn = html.columns.served
+
+state.orders[formID.value].title = formTitle.value 
+state.orders[formID.value].table = formTable.value 
+state.orders[formID.value].column = formColumn.value  
+
+currentColumn.appendChild(document.querySelector(`[data-id="${formID.value}"]`))
+document.querySelector(`[data-id="${formID.value}"] [data-order-title]`).innerHTML = state.orders[formID.value].title
+document.querySelector(`[data-id="${formID.value}"] [data-order-table]`).innerHTML = state.orders[formID.value].table
+
+editOverlay.close()
+otherAdd.focus()
+
 }
 
 const handleDelete = (event) => {
-    const { target } = event
-        
- if (target.hasAttribute('data-edit-delete')) {
-            const editCancel = html.edit.overlay
-            editCancel.removeAttribute('open')
-          }
+const editOverlay = html.edit.overlay
+const otherAdd = html.other.add
+const formID = html.edit.id
+
+const formColumn = html.edit.column
+let currentColumn = null
+
+if (formColumn.value === 'ordered') currentColumn = html.columns.ordered
+if (formColumn.value === 'preparing') currentColumn = html.columns.preparing
+if (formColumn.value === 'served') currentColumn = html.columns.served
+
+currentColumn.removeChild(document.querySelector(`[data-id="${formID.value}"]`))
+
+delete state.orders[formID.value]
+editOverlay.close()
+otherAdd.focus()
 }
 
 html.add.cancel.addEventListener('click', handleAddToggle)
