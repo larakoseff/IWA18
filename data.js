@@ -54,7 +54,7 @@ export const state = {
  * timezones. Therefore two additional random numbers are added to the ID to
  * ensure additional uniqueness.
  */
-const createUniqueId = () => {
+export const createUniqueId = () => {
     const random1 = Math.floor(Math.random() * 10000000000000000)
     const random2 = Math.floor(Math.random() * 10000000000000000)
     const timestamp = new Date().getTime()

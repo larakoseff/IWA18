@@ -1,6 +1,6 @@
 import { createOrderHtml, html, updateDraggingHtml, moveToColumn }  from './view.js' 
 
-import { createOrderData, updateDragging } from './data.js'
+import { COLUMNS, createOrderData, updateDragging } from './data.js'
 /**
  * A handler that fires when a user drags over any element inside a column. In
  * order to determine which column the user is dragging over the entire event
@@ -30,7 +30,6 @@ const handleDragOver = (event) => {
     updateDraggingHtml({ over: column })
 }
 
-
 const handleDragStart = (event) => { 
     event.preventDefault();
     const path = event.path || event.composedPath()
@@ -45,8 +44,8 @@ const handleDragStart = (event) => {
     }
 
     if (!column) return
-    updateDragging({ over: column })
-    updateDraggingHtml({ over: column })
+    updateDragging({ start: column })
+    updateDraggingHtml({ start: column })
 }
 
 const handleDragEnd = (event) => { 
@@ -63,8 +62,8 @@ const handleDragEnd = (event) => {
     }
 
     if (!column) return
-    updateDragging({ over: column })
-    updateDraggingHtml({ over: column })
+    updateDragging({ end: column })
+    updateDraggingHtml({ end: column })
 }
 
 
@@ -91,21 +90,57 @@ addOrder.setAttribute('open', 'true')
 } 
 
 if (target.hasAttribute('data-add-cancel')) {
-    const helpCancelElement = html.add.overlay
-    helpCancelElement.removeAttribute('open')
+    const addCancelElement = html.add.overlay
+    addCancelElement.removeAttribute('open')
   }
 
 }
 
 const handleAddSubmit = (event) => {
+
+    const formData = new FormData(event.target)
+
+    const orderTitle = formData.get('data-add-title')
+    const orderTable = formData.get('data-add-table')
+    const orderColumn = COLUMNS['ordered']
+
+    createOrderHtml(orderTitle, orderTable)
+    createOrderData(orderTitle, orderTable)
+    moveToColumn(orderColumn)
+  }
+
+const handleEditToggle = (event) => {
+    const { target } = event
     
+    if (target.hasAttribute('data-grid')) {
+        const editOrder = html.edit.overlay
+        editOrder.setAttribute('open', 'true')
+        } 
+        
+ if (target.hasAttribute('data-edit-cancel')) {
+            const editCancel = html.edit.overlay
+            editCancel.removeAttribute('open')
+          }
+
 }
-const handleEditToggle = (event) => {}
-const handleEditSubmit = (event) => {}
+const handleEditSubmit = (event) => {
+    const { target } = event
+    
+    if (target.hasAttribute('data-edit-form')) {
+        
+        createOrderHtml()
+        createOrderData()
+        moveToColumn()
+    }
+}
 
 const handleDelete = (event) => {
-const cancelOrder = html.add.overlay
-helpCancelElement.removeAttribute('open')
+    const { target } = event
+        
+ if (target.hasAttribute('data-edit-delete')) {
+            const editCancel = html.edit.overlay
+            editCancel.removeAttribute('open')
+          }
 }
 
 html.add.cancel.addEventListener('click', handleAddToggle)
